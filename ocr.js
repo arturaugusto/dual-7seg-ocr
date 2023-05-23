@@ -12,11 +12,17 @@ const ocr = (maskCanvas, maskCanvasCtx, roiCanvas, roiCanvasCtx, conf) => {
   let digitsCount = conf.format.split('').filter(x => x !== '.').length
   let digitWidth = (maskCanvas.width-Math.abs(conf.padLeft))/digitsCount - conf.gap + conf.gap/digitsCount
 
+
   if (conf.padLeft < 0) {
     conf.padLeft = 0
   }
 
   let digitHeigth = roiCanvas.height
+
+  conf.tickWidth = digitWidth/20
+  conf.tickHeight=digitHeigth/7
+
+  conf.tickWidth = Math.max(conf.tickWidth, 2)
 
   const drawPixel = (x, y, color) => {
     let roundedX = Math.round(x);
@@ -158,11 +164,12 @@ const ocr = (maskCanvas, maskCanvasCtx, roiCanvas, roiCanvasCtx, conf) => {
     }
 
     const drawDot = () => {
+      let heigthFactor = 1
       return drawSeg(
         (verticalX+verticalXPrev)/2,
-        conf.padTop + digitHeigth - conf.tickHeight/2,
+        conf.padTop + digitHeigth - conf.tickHeight/heigthFactor,
         conf.tickWidth,
-        conf.tickHeight/2,
+        conf.tickHeight/heigthFactor,
       )
     }
 

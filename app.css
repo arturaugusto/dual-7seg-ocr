@@ -71,12 +71,18 @@ video {
   top: 250px;
 }
 
+/*
 .roi-1-wrapper {
   top: 580px;
 }
 
 .roi-2-wrapper {
   top: 720px;
+}
+*/
+
+.chart-wrapper {
+  margin-top: 550px;
 }
 
 footer {

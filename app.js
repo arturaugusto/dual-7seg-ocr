@@ -46,7 +46,7 @@ let confTemplate = {
   tickHeight: 13,
   skew: 0,
   vskew: 0,
-  detectThresh: 0.2,
+  detectThresh: 0.05,
   vTarget: 'd',
   hTarget: 'w',
   gamma: 2.2,
@@ -58,6 +58,17 @@ let state = {
   confs: [Object.assign({}, confTemplate), Object.assign({}, confTemplate)]
 }
 
+
+
+let urlState = window.location.href.split('#/')[1]
+if (urlState) {
+  state = JSON.parse(decodeURI(urlState))
+}
+
+state.confs[0].region ||= [10, 10, roiCanvas.width/2-10, 100]
+state.confs[1].region ||= [roiCanvas.width/2+10, 10, roiCanvas.width/2-20, 100]
+
+
 video.addEventListener("play", () => {
   videoCanvas.width = video.videoWidth;
   videoCanvas.height = video.videoHeight;
@@ -66,14 +77,13 @@ video.addEventListener("play", () => {
   roiCanvas.height = video.videoHeight;
 
 
-  state.confs[0].region = [10, 10, roiCanvas.width/2-10, 100]
-  state.confs[1].region = [roiCanvas.width/2+10, 10, roiCanvas.width/2-20, 100]
-
   state.roiConfSel = state.confs[0]
 
-
-  const draw = () => {
+  const draw = () => {    
     roiCanvasCtx.clearRect(0, 0, roiCanvas.width, roiCanvas.height)
+
+    chart._data[0].push(Date.now()/1000)
+    
     
     state.confs.forEach((conf, i) => {
       
@@ -115,35 +125,98 @@ video.addEventListener("play", () => {
       videoCanvasCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
 
 
-      applyGammaCorrection(imageData1, conf.gamma)
-      
-      // Draw modified image data to second canvas
-      let histogram = hist(imageData1);
-      let threshold = otsu(histogram, imageData1.width*imageData1.height);
-      
+      roiCanvasArr[i].roiCanvasCtx.putImageData(imageData1, 0, 0);
 
-      binarize(threshold, imageData1, conf.invert);
-
+      
       roiCanvasArr[i].roiCanvas.width = imageData1.width;
       roiCanvasArr[i].roiCanvas.height = imageData1.height;
 
-      roiCanvasArr[i].maskCanvas.width = imageData1.width;
-      roiCanvasArr[i].maskCanvas.height = imageData1.height;
+      
+      applyGammaCorrection(imageData1, conf.gamma)
 
-      roiCanvasArr[i].roiCanvasCtx.putImageData(imageData1, 0, 0);
+      let uint8array = Uint8Array.from(imageData1.data)
+
+      const sess = new gm.Session();
+      
+      const t = new gm.Tensor('uint8', [roiCanvasArr[i].roiCanvas.height, roiCanvasArr[i].roiCanvas.width, 4], uint8array);
+      
+      let pipeline = t
+
+      // operations always return a valid input for another operation.
+      // if you are a functional programmer, you could easily compose these.
+      // pipeline = gm.grayscale(pipeline);
+      pipeline = gm.gaussianBlur(pipeline, 3, 3);
+      pipeline = gm.sobelOperator(pipeline);
+      pipeline = gm.cannyEdges(pipeline, 0.25, 0.75);
+      pipeline = gm.dilate(pipeline, [3, 3]);
+      // pipeline = gm.erode(pipeline, [3, 3]);
+
+
+      // allocate output tensor
+      const output = gm.tensorFrom(pipeline);
+
+      sess.init(pipeline);
+
+      // run your operation
+      sess.runOp(pipeline, 0, output);
+      const canvasProcessed = gm.canvasCreate(roiCanvasArr[i].roiCanvas.height, roiCanvasArr[i].roiCanvas.width);
+
+      gm.canvasFromTensor(canvasProcessed, output)
+
+
+      let imageData2 = gm.toImageData(output, true)
+      // let imageData2 = canvasProcessed.imageData
+      
+
+      // Draw modified image data to second canvas
+      let histogram = hist(imageData2);
+      let threshold = otsu(histogram, imageData2.width*imageData2.height);
+      
+
+      binarize(threshold, imageData2, conf.invert);
+
+      roiCanvasArr[i].roiCanvasCtx.putImageData(imageData2, 0, 0);
+
+      roiCanvasArr[i].maskCanvas.width = imageData2.width;
+      roiCanvasArr[i].maskCanvas.height = imageData2.height;
+
 
       let res = ocr(roiCanvasArr[i].maskCanvas, roiCanvasArr[i].maskCanvasCtx, roiCanvasArr[i].roiCanvas, roiCanvasArr[i].roiCanvasCtx, conf);
+
+      let resFloat = parseFloat(res)
+
+      if (!isNaN(resFloat)) {
+        chart._data[i+1].push(resFloat)
+      } else {
+        chart._data[i+1].push(undefined)
+      }
 
       // console.log(res)
       roiCanvasCtx.fillStyle = "black";
       roiCanvasCtx.font = "22px Arial";
       roiCanvasCtx.fillText(res, conf.region[0], conf.region[1]+conf.region[3]);
+      sess.destroy()
+
+      if (state.showpp) {
+        roiCanvasCtx.drawImage(roiCanvasArr[i].roiCanvas, conf.region[0], conf.region[1], conf.region[2], conf.region[3])
+      }
+      roiCanvasCtx.drawImage(roiCanvasArr[i].maskCanvas, conf.region[0], conf.region[1], conf.region[2], conf.region[3])
 
     })
 
-    requestAnimationFrame(draw);
+
+    // console.log(chart._data)
+    chart.setData(chart._data)
+
+    window.setTimeout(() => {
+      requestAnimationFrame(draw);
+    }, 10)
   };
-  requestAnimationFrame(draw);
+
+  if (btoa(window.location.origin) === 'aHR0cHM6Ly9hcnR1cmF1Z3VzdG8uZ2l0aHViLmlv' || btoa(window.location.origin) === 'aHR0cDovLzEyNy4wLjAuMTo4MDAw') {
+    requestAnimationFrame(draw);  
+  }
+
 });
 
 function gotDevices(mediaDevices) {

@@ -2,12 +2,12 @@
 
 
 document.onkeydown = function(e) {
-  
+  console.log(e.keyCode)
   switch (e.keyCode) {
-    case 49:
+    case 65:
       state.roiConfSel = state.confs[0];
       break;
-    case 50:
+    case 66:
       state.roiConfSel = state.confs[1];
       break;    
   }
@@ -18,13 +18,60 @@ document.onkeydown = function(e) {
   // console.log(e.keyCode)
   
   switch (e.keyCode) {
-    case 73:
-      state.roiConfSel.invert = !state.roiConfSel.invert
+
+    case 49:
+      state.roiConfSel.format = '8'
+      e.preventDefault();
+      break;
+    case 50:
+      state.roiConfSel.format = '8.8'
+      e.preventDefault();
+      break;
+    case 51:
+      state.roiConfSel.format = '8.8.8'
+      e.preventDefault();
+      break;
+    case 52:
+      state.roiConfSel.format = '8.8.8.8'
+      e.preventDefault();
+      break;
+    case 53:
+      state.roiConfSel.format = '8.8.8.8.8'
+      e.preventDefault();
+      break;
+    case 54:
+      state.roiConfSel.format = '8.8.8.8.8.8'
+      e.preventDefault();
+      break;
+    case 55:
+      state.roiConfSel.format = '8.8.8.8.8.8.8'
+      e.preventDefault();
+      break;
+    case 56:
+      state.roiConfSel.format = '8.8.8.8.8.8.8.8'
+      e.preventDefault();
+      break;
+    case 57:
+      state.roiConfSel.format = '8.8.8.8.8.8.8.8.8'
+      e.preventDefault();
+      break;
+
+
+
+    
+    case 84:
+      state.showpp = !state.showpp
       e.preventDefault();
       break;
 
     case 37:
       // console.log('left');
+      if (e.ctrlKey) {
+        state.roiConfSel.gap = Math.max(state.roiConfSel.gap-1, 0)
+        e.preventDefault();
+        break;
+      }
+
       if (e.shiftKey) {
         state.roiConfSel.skew = Math.max(state.roiConfSel.skew-0.5, -30)
         e.preventDefault();
@@ -32,23 +79,23 @@ document.onkeydown = function(e) {
       }
 
       if (state.roiConfSel.hTarget) {
-      state.roiConfSel.hTarget = null
-      state.roiConfSel.vTarget = 'a'
-      e.preventDefault();
-      break;
+        state.roiConfSel.hTarget = null
+        state.roiConfSel.vTarget = 'a'
+        e.preventDefault();
+        break;
       }
 
       if (state.roiConfSel.vTarget === 'a') {
-      if (state.roiConfSel.region[0] > 0) {
-        state.roiConfSel.region[0] = Math.max(state.roiConfSel.region[0]-1, 0)
-        state.roiConfSel.region[2] = Math.min(state.roiConfSel.region[2]+1, roiCanvas.width)
-      }
+        if (state.roiConfSel.region[0] > 0) {
+          state.roiConfSel.region[0] = Math.max(state.roiConfSel.region[0]-1, 0)
+          state.roiConfSel.region[2] = Math.min(state.roiConfSel.region[2]+1, roiCanvas.width)
+        }
       }
 
       if (state.roiConfSel.vTarget === 'd') {
-      if (state.roiConfSel.region[2] > 1) {
-        state.roiConfSel.region[2] = Math.min(state.roiConfSel.region[2]-1, roiCanvas.width)
-      }            
+        if (state.roiConfSel.region[2] > 1) {
+          state.roiConfSel.region[2] = Math.min(state.roiConfSel.region[2]-1, roiCanvas.width)
+        }
       }
 
       e.preventDefault();
@@ -57,7 +104,7 @@ document.onkeydown = function(e) {
       // console.log('up');
 
       if (e.shiftKey) {
-        state.roiConfSel.gamma = Math.min(state.roiConfSel.gamma+0.2, 3)
+        state.roiConfSel.gamma = Math.min(state.roiConfSel.gamma+0.2, 6)
         e.preventDefault();
         break;
       }
@@ -85,6 +132,12 @@ document.onkeydown = function(e) {
       break;
     case 39:
       // console.log('right');
+
+      if (e.ctrlKey) {
+        state.roiConfSel.gap = Math.min(state.roiConfSel.gap+1, 100)
+        e.preventDefault();
+        break;
+      }
 
       if (e.shiftKey) {
         state.roiConfSel.skew = Math.min(state.roiConfSel.skew+0.5, 30)
@@ -118,7 +171,7 @@ document.onkeydown = function(e) {
     case 40:
       // console.log('down');
       if (e.shiftKey) {
-        state.roiConfSel.gamma = Math.max(state.roiConfSel.gamma-0.2, 0.1)
+        state.roiConfSel.gamma = Math.max(state.roiConfSel.gamma-0.2, 0.02)
         e.preventDefault();
         break;
       }
@@ -148,3 +201,10 @@ document.onkeydown = function(e) {
   }
   
 };
+
+
+document.onkeyup = function(e) {
+  let permalinkInputElement = document.getElementById('permalinkInput')
+  let permalinkText = window.location.origin + window.location.pathname + '#/' + JSON.stringify(state)
+  history.pushState(null, "", permalinkText);  
+}
